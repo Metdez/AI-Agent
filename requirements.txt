@@ -1,0 +1,9 @@
+anthropic
+tavily-python
+pypdf
+pdf2image
+pytesseract
+python-pptx
+python-dotenv
+requests
+firecrawl-py
