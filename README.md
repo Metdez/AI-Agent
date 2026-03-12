@@ -92,8 +92,8 @@ Every statistic cites its source. Every unknown is explicitly flagged. If too ma
 
 ```bash
 # Clone the repo
-git clone https://github.com/Metdez/HIRE-ME.git
-cd HIRE-ME
+git clone https://github.com/Metdez/VC-Due-Diligence-Agent.git
+cd VC-Due-Diligence-Agent
 
 # Create virtual environment
 python -m venv .venv
