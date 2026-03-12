@@ -1,9 +1,9 @@
 anthropic
 tavily-python
 pypdf
-pdf2image
-pytesseract
+pymupdf
 python-pptx
 python-dotenv
 requests
 firecrawl-py
+google-genai>=1.0.0
