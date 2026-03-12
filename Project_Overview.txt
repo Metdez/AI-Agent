@@ -1,0 +1,45 @@
+Project Title: VC Due Diligence AI Agent - High-Level Project Overview
+
+1. Executive Summary
+The VC Due Diligence AI Agent is a specialized software tool designed specifically for Venture Capitalists (VCs) and investment professionals. Its primary purpose is to automate and streamline the initial stages of the due diligence process when evaluating startup companies. Instead of an analyst manually reading through a pitch deck, searching the web for information, and typing up a summary memo, this AI agent handles all of these steps automatically. You simply provide it with a pitch deck (in PDF or PowerPoint format), and the system autonomously processes the document, conducts supplementary online research, and generates a comprehensive, formatted due diligence memo. It acts as a tireless, preliminary analyst that surfaces key information, identifies data gaps, and highlights potential risks.
+
+2. The Architecture: How It Is Organized
+The system is built upon a unique "3-Layer Architecture" designed to ensure that the unpredictable nature of AI does not interfere with the reliable functioning of the software. Here is how the three layers work together:
+
+- Layer 1: Directives (The "What")
+These are essentially Standard Operating Procedures (SOPs) written in plain English. Think of them as instruction manuals that explain the goals, the required inputs, the specific tools to use, and what the final output should look like. Because they are written in normal language, they act as the guiding principles for the AI, functioning similarly to how a manager might instruct an entry-level employee.
+
+- Layer 2: Orchestration (The "Decision Maker")
+This is the "brain" of the operation. It reads the directives from Layer 1 and figures out how to put them into action. It decides which tools to call, in what order, and how to handle any unexpected hiccups or errors. It serves as the intelligent glue that binds the high-level intent with the actual, on-the-ground execution.
+
+- Layer 3: Execution (The "Doers")
+These are highly reliable, specific scripts whose only job is to perform concrete actions. Unlike the AI, which can be creative and sometimes unpredictable, these scripts are strictly deterministic—meaning they do exactly what they are told, every single time. They handle tasks like calling external search engines, processing data, and moving files around.
+
+3. The Step-by-Step Process: From Pitch Deck to Memo
+When a user drops a pitch deck into the system, the agent follows a strict, sequential pipeline to produce the final memo. Here is a high-level walk-through of each step in the journey:
+
+Step 1: Reading the Pitch Deck
+The journey begins when a pitch deck (either a PDF or a PPTX file) is placed into the system's input folder. The agent automatically detects the file and carefully extracts all the text hidden within its slides. This text forms the foundational knowledge base that the agent will use for the rest of the process.
+
+Step 2: Extracting Company Information
+Once the text is extracted, the agent uses its analytical capabilities to parse the information. It looks for the fundamental building blocks of the startup's identity: the company name, the industry they operate in, who their target market is, and what problem they are trying to solve. It also assigns a "confidence score" to this extraction so that the user knows how reliable the provided information is.
+
+Step 3: Finding the Missing Pieces (Filling Data Gaps)
+Founders don't always put every piece of important information in their pitch decks. The agent recognizes this and actively reviews what it has learned so far to identify what is missing. It then formulates targeted questions about the startup, the founders, or the market that need to be answered to complete the picture. 
+
+Step 4: Conducting Deep Research
+Armed with its foundational knowledge and a list of identified gaps, the agent becomes a researcher. It scours the internet for information, looking up the company, analyzing its market, and finding data that the founders didn't explicitly share. It uses advanced web-searching tools to compile a robust dossier of external information.
+
+Step 5: Analyzing the Web Pages (Deep Scrape)
+If the initial research uncovers high-value webpages—like the company's official website or a major news article—the agent can conduct a "deep scrape." This means it actually goes to those specific websites, reads the content on those pages, and adds those deep insights into its growing pool of knowledge.
+
+Step 6: Writing the Final Memo
+Finally, all the disparate pieces of information—the text from the pitch deck, the extracted company identity, the answers to the missing data gaps, and the broad internet research—are brought together. The agent synthesizes this massive volume of data and writes a professional, formatted due diligence memo. It organizes the information into standardized sections (like Company Overview, Product & Technology, Traction, and Key Risks) and even suggests targeted questions the VC should ask the founders during their next meeting. The finished memo is then saved for the user to review.
+
+4. Built-in Reliability and Self-Healing
+One of the most powerful aspects of this agent is its resilience. It operates under a "Self-Annealing Loop" philosophy. When it encounters an error—perhaps a search engine takes too long to respond, or a website blocks its attempt to read it—the agent is designed to fix the problem, try again, and learn from its mistake. Every action the agent takes outside of its isolated environment is equipped with retry logic, meaning it will persistently attempt to complete its tasks until it succeeds or exhausts a reasonable number of tries.
+
+5. Privacy and Security
+Unlike many AI tools that live entirely in the cloud, this project is designed to run locally on the user's computer. It does not require a web server or a centralized database. The intermediate files—the raw text, the messy data dumps, and the temporary research notes—are safely stored locally and are designed to be entirely disposable. The final, polished memo is the only permanent artifact, giving the user complete control over where their confidential investment data lives.
+
+By combining the analytical power of large language models with the sturdy reliability of deterministic programming, the VC Due Diligence AI Agent offers a powerful, tireless assistant for early-stage startup evaluation.
