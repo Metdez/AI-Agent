@@ -266,8 +266,8 @@ python execution/deep_scraper.py        # Test Firecrawl scraping
 
 Prototype built for **Glasswing Ventures** — a venture capital firm investing in AI-first companies.
 
-Contact: **Aditya Chaudhry**, Head of AI
+For: **Aditya Chaudhry**, Head of AI
 
 ---
 
-*Built by [Aditya Mehta](https://github.com/Metdez)*
+*Built by [Zack Hanna](https://github.com/Metdez)* (Hire Me)
