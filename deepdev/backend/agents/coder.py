@@ -116,10 +116,19 @@ def coder_node(state: DeepDevState) -> dict:
         commit_tool = next(t for t in git_tools if t.name == "git_commit")
         commit_result = commit_tool.invoke({"message": f"step {step['step']}: {step['description']}"})
 
+        # Auto-push to remote after each step
+        push_tool = next((t for t in git_tools if t.name == "git_push"), None)
+        push_result = ""
+        if push_tool:
+            try:
+                push_result = push_tool.invoke({})
+            except Exception:
+                push_result = "push skipped"
+
         ws_events.append({
             "type": "git_commit",
             "timestamp": time.time(),
-            "data": {"message": commit_result},
+            "data": {"message": f"{commit_result} | {push_result}"},
         })
 
         # Mark step as done, advance

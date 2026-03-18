@@ -16,9 +16,31 @@ from agents.supervisor import route_next, NODE_CODER, NODE_TESTER, NODE_FIXER, N
 from tools.git_ops import create_git_tools
 
 
+def _push_branch(repo_path: str) -> str:
+    """Push the current branch to origin."""
+    try:
+        git_tools = create_git_tools(repo_path)
+        push_tool = next(t for t in git_tools if t.name == "git_push")
+        return push_tool.invoke({})
+    except Exception as e:
+        return f"Push failed: {e}"
+
+
 def _done_node(state: DeepDevState) -> dict:
-    """Terminal node — marks the task as successfully completed."""
+    """Terminal node — marks the task as successfully completed and pushes to remote."""
     ws_events = list(state.get("ws_events", []))
+
+    # Auto-push the branch to GitHub
+    repo_path = state.get("repo_path", "")
+    branch_name = state.get("branch_name", "")
+    if repo_path and branch_name:
+        push_result = _push_branch(repo_path)
+        ws_events.append({
+            "type": "git_commit",
+            "timestamp": time.time(),
+            "data": {"message": f"Auto-pushed: {push_result}"},
+        })
+
     ws_events.append({
         "type": "status_change",
         "timestamp": time.time(),

@@ -85,4 +85,15 @@ def create_git_tools(repo_path: str) -> list:
         except Exception as e:
             return f"Error getting log: {e}"
 
-    return [git_create_branch, git_commit, git_diff, git_log]
+    @tool
+    def git_push() -> str:
+        """Push the current branch to the remote origin."""
+        try:
+            repo = _get_repo()
+            branch = repo.active_branch.name
+            repo.git.push("origin", branch, "--set-upstream")
+            return f"Pushed branch '{branch}' to origin"
+        except Exception as e:
+            return f"Error pushing: {e}"
+
+    return [git_create_branch, git_commit, git_diff, git_log, git_push]
