@@ -1,9 +1,10 @@
+.tmp/
 .env
-output/
+credentials.json
+token.json
 __pycache__/
 *.pyc
 .venv/
-input/*.pdf
-input/*.pptx
-*.egg-info/
-.tmp/
+node_modules/
+.next/
+*.pdf
