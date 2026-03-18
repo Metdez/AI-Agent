@@ -30,9 +30,17 @@ def create_shell_tools(repo_path: str) -> list:
         return str(target)
 
     @tool
-    def run_command(command: str, cwd: str = None) -> dict:
-        """Run a shell command and return stdout, stderr, and return code. Timeout is 120 seconds. cwd defaults to the repo root if not specified."""
+    def run_command(command: str = "", cwd: str = None) -> dict:
+        """Run a shell command in the repository and return its output.
+
+        Args:
+            command: The shell command to execute (e.g. 'npm install', 'python test.py'). REQUIRED.
+            cwd: Working directory relative to repo root. Defaults to repo root.
+        """
         try:
+            if not command.strip():
+                return {"stdout": "", "stderr": "Error: no command provided", "returncode": -1}
+
             # Check blocklist
             blocked = _validate_command(command)
             if blocked:

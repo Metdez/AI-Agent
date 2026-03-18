@@ -18,8 +18,12 @@ def create_git_tools(repo_path: str) -> list:
             return Repo.init(resolved_repo)
 
     @tool
-    def git_create_branch(branch_name: str) -> str:
-        """Create and checkout a new git branch. If the branch already exists, just check it out."""
+    def git_create_branch(branch_name: str = "") -> str:
+        """Create and checkout a new git branch. If the branch already exists, just check it out.
+
+        Args:
+            branch_name: Name of the branch to create/checkout. REQUIRED.
+        """
         try:
             repo = _get_repo()
             if branch_name in [b.name for b in repo.branches]:
@@ -31,8 +35,12 @@ def create_git_tools(repo_path: str) -> list:
             return f"Error creating branch: {e}"
 
     @tool
-    def git_commit(message: str) -> str:
-        """Stage all changes and create a git commit."""
+    def git_commit(message: str = "") -> str:
+        """Stage all changes and create a git commit.
+
+        Args:
+            message: Commit message describing the changes. REQUIRED.
+        """
         try:
             repo = _get_repo()
             repo.git.add("-A")

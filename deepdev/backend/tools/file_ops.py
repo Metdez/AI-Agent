@@ -38,8 +38,13 @@ def create_file_tools(repo_path: str) -> list:
             return f"Error reading file {path}: {e}"
 
     @tool
-    def write_file(path: str, content: str) -> str:
-        """Write content to a file in the repository. Creates directories if needed. Path should be relative to the repo root."""
+    def write_file(path: str, content: str = "") -> str:
+        """Write content to a file in the repository. Creates directories if needed.
+
+        Args:
+            path: File path relative to the repo root (e.g. 'src/main.py')
+            content: The full file content to write. REQUIRED — always provide the complete file content as a string.
+        """
         try:
             full_path = _safe_path(path)
             os.makedirs(os.path.dirname(full_path), exist_ok=True)
