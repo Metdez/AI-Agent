@@ -1,7 +1,7 @@
 """Supervisor — conditional routing logic for the DeepDev graph."""
 
 import logging
-from langgraph.graph import Send
+from langgraph.types import Send
 from state import DeepDevState
 from config import MAX_FIX_ATTEMPTS, SPECULATIVE_TEST
 
