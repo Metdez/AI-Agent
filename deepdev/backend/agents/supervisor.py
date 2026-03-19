@@ -17,6 +17,7 @@ NODE_FAILED = "failed"
 NODE_STEP_SCHEDULER = "step_scheduler"
 NODE_MERGE_COORDINATOR = "merge_coordinator"
 NODE_SPECULATIVE_TESTER = "speculative_tester"
+NODE_CODER_WORKER = "coder_worker"
 
 
 def route_next(state: DeepDevState) -> str:
@@ -85,8 +86,8 @@ def route_next(state: DeepDevState) -> str:
 def schedule_wave(state: DeepDevState) -> list[Send]:
     """Create Send objects for parallel coder workers in the current wave.
 
-    Each Send targets the "coder" node with a per-step state slice including
-    a worker_id and optional worktree_path.
+    Each Send targets the "coder_worker" node with a per-step state slice
+    including all DeepDevState fields, a worker_id, and a worktree_path.
     """
     waves = state.get("waves", [])
     current_wave = state.get("current_wave", 0)
@@ -110,7 +111,7 @@ def schedule_wave(state: DeepDevState) -> list[Send]:
         worker_id = f"coder-step-{step_index}"
         worktree_path = worktree_paths.get(step_index, worktree_paths.get(str(step_index)))
 
-        # Build a per-worker state slice
+        # Build a per-worker state slice with all DeepDevState fields
         worker_state = {
             "task": state.get("task", ""),
             "repo_path": state["repo_path"],
@@ -125,13 +126,19 @@ def schedule_wave(state: DeepDevState) -> list[Send]:
             "messages": [],
             "status": "coding",
             "ws_events": [],
+            # Parallel execution fields
+            "dependencies": state.get("dependencies", {}),
+            "waves": state.get("waves", []),
+            "current_wave": state.get("current_wave", 0),
+            "wave_results": {},
+            "worktree_paths": state.get("worktree_paths", {}),
+            "speculative_test": state.get("speculative_test", False),
+            # Worker-specific fields
             "worker_id": worker_id,
+            "worktree_path": worktree_path or "",
         }
 
-        if worktree_path:
-            worker_state["worktree_path"] = worktree_path
-
-        sends.append(Send(NODE_CODER, worker_state))
+        sends.append(Send(NODE_CODER_WORKER, worker_state))
 
     log.info(f"schedule_wave: dispatching wave {current_wave} with {len(sends)} parallel coder(s): steps {wave_steps}")
 
