@@ -7,7 +7,6 @@ Three LangGraph nodes:
 """
 
 import logging
-import time
 from state import DeepDevState, WaveResult
 from merge_coordinator import create_worktree, cleanup_stale_worktrees
 from scheduler import should_parallelize_wave

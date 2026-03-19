@@ -57,6 +57,6 @@ def emit_live_event(event: dict) -> None:
 def emit_live_event_with_worker(event: dict, worker_id: str | None) -> None:
     """Emit a live event with optional worker_id tagging."""
     if worker_id:
-        event = {**event}
-        event.setdefault("data", {})["worker_id"] = worker_id
+        event = {**event, "data": {**event.get("data", {})}}
+        event["data"]["worker_id"] = worker_id
     emit_live_event(event)

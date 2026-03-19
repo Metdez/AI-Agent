@@ -102,8 +102,8 @@ def schedule_wave(state: DeepDevState) -> list[Send]:
     sends = []
 
     for step_index in wave_steps:
-        # Find the plan step (step numbers are 1-indexed, list is 0-indexed)
-        plan_idx = step_index - 1 if step_index > 0 else step_index
+        # Wave indices are 0-based (produced by scheduler's enumerate(plan))
+        plan_idx = step_index
         if plan_idx < 0 or plan_idx >= len(plan):
             log.warning(f"schedule_wave: step index {step_index} out of range, skipping")
             continue
