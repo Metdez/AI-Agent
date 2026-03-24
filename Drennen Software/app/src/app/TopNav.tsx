@@ -19,7 +19,7 @@ export default function TopNav({ userEmail }: { userEmail: string | null }) {
 
   return (
     <nav style={{ backgroundColor: '#542785' }} className="w-full flex-shrink-0">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center gap-6">
         <a
           href="/dashboard"
           className="text-white font-semibold text-base hover:opacity-80 transition-opacity"
@@ -27,7 +27,13 @@ export default function TopNav({ userEmail }: { userEmail: string | null }) {
         >
           Drennen MGMT 305
         </a>
-        <div className="flex items-center gap-3">
+        <a
+          href="/students"
+          className="text-purple-200 text-sm font-medium hover:text-white transition-colors"
+        >
+          Students
+        </a>
+        <div className="flex items-center gap-3 ml-auto">
           {userEmail && (
             <span className="text-purple-200 text-sm hidden sm:block truncate max-w-[200px]">
               {userEmail}
