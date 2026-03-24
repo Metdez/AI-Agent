@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { jsonSuccess, jsonError } from '@/lib/types'
 
 export const runtime = 'nodejs'
@@ -15,11 +15,7 @@ export async function POST(request: Request) {
     return jsonError('INVALID_PASSWORD', 'Password must be at least 8 characters', 422)
   }
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  )
+  const supabase = createAdminClient()
 
   const { data, error } = await supabase.auth.admin.createUser({
     email,

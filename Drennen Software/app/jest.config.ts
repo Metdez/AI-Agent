@@ -12,6 +12,10 @@ const config: Config = {
   collectCoverageFrom: [
     'src/app/api/sessions/[id]/extract/route.ts',
     'src/app/api/sessions/[id]/generate/route.ts',
+    'src/app/api/auth/signup/route.ts',
+    'src/app/api/auth/login/route.ts',
+    'src/app/api/auth/logout/route.ts',
+    'src/app/api/auth/session/route.ts',
   ],
 }
 
