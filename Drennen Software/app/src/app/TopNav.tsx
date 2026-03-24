@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function TopNav({ userEmail }: { userEmail: string | null }) {
   const [loading, setLoading] = useState(false)
@@ -27,12 +28,12 @@ export default function TopNav({ userEmail }: { userEmail: string | null }) {
         >
           Drennen MGMT 305
         </a>
-        <a
+        <Link
           href="/students"
           className="text-purple-200 text-sm font-medium hover:text-white transition-colors"
         >
           Students
-        </a>
+        </Link>
         <div className="flex items-center gap-3 ml-auto">
           {userEmail && (
             <span className="text-purple-200 text-sm hidden sm:block truncate max-w-[200px]">
