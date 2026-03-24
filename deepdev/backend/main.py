@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import logging
 import os
 import pathlib
 import sys
@@ -12,6 +13,13 @@ from fastapi.middleware.cors import CORSMiddleware
 
 # Load API keys from the project root .env
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
+
+# Configure logging — show all deepdev.* logs in console
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(name)s] %(message)s",
+    datefmt="%H:%M:%S",
+)
 
 # Ensure the backend package root is on the path so local imports work
 sys.path.insert(0, os.path.dirname(__file__))
@@ -98,6 +106,9 @@ async def websocket_endpoint(ws: WebSocket):
                 "done": "supervisor",
                 "failed": "supervisor",
                 "cancelled": "supervisor",
+                "scheduling": "supervisor",
+                "wave_merged": "supervisor",
+                "wave_coding_complete": "supervisor",
             }
             agent = agent_map.get(status, "supervisor")
             status_map = {
@@ -109,6 +120,9 @@ async def websocket_endpoint(ws: WebSocket):
                 "done": "complete",
                 "failed": "error",
                 "cancelled": "error",
+                "scheduling": "active",
+                "wave_merged": "active",
+                "wave_coding_complete": "active",
             }
             return {"type": "status", "agent": agent, "status": status_map.get(status, "active")}
 
@@ -117,10 +131,12 @@ async def websocket_endpoint(ws: WebSocket):
             return {"type": "plan", "steps": steps}
 
         if etype == "step_started":
-            return {"type": "thinking", "agent": "coder", "content": f"Step {data.get('step')}: {data.get('description')}"}
+            # Send both a status update AND a thinking event
+            # We return a list and handle it in send_event
+            return {"type": "step_started", "step": data.get("step"), "description": data.get("description"), "files": data.get("files", [])}
 
         if etype == "step_completed":
-            return {"type": "thinking", "agent": "coder", "content": f"Completed step {data.get('step')}: {data.get('description')}"}
+            return {"type": "step_completed", "step": data.get("step"), "description": data.get("description")}
 
         if etype == "tool_call":
             tool = data.get("tool", "")
@@ -158,6 +174,31 @@ async def websocket_endpoint(ws: WebSocket):
         if etype == "error":
             return {"type": "error", "message": data.get("message", "Unknown error"), "recoverable": False}
 
+        if etype == "wave_started":
+            return {
+                "type": "wave_started",
+                "wave": data.get("wave_index", 0),
+                "steps": data.get("steps", []),
+                "parallel": data.get("parallel", False),
+                "total_waves": data.get("total_waves", 1),
+            }
+
+        if etype == "wave_completed":
+            return {
+                "type": "wave_completed",
+                "wave": data.get("wave", event.get("wave", 0)),
+                "merge_status": "success",
+                "files_modified": data.get("files_modified", event.get("files_modified", [])),
+            }
+
+        if etype == "wave_conflict":
+            return {
+                "type": "wave_completed",
+                "wave": data.get("wave", event.get("wave", 0)),
+                "merge_status": "conflict",
+                "conflicting_steps": data.get("conflicting_steps", event.get("conflicting_steps", [])),
+            }
+
         # Unknown event type — send as thinking
         return {"type": "thinking", "agent": "supervisor", "content": str(data)}
 
@@ -167,21 +208,41 @@ async def websocket_endpoint(ws: WebSocket):
             raise asyncio.CancelledError("Task cancelled by user")
         try:
             translated = translate_event(event)
-            if translated:
+            if not translated:
+                return
+
+            # Propagate worker_id if present
+            worker_id = event.get("data", {}).get("worker_id")
+            if worker_id and translated:
+                translated["worker_id"] = worker_id
+
+            # step_started -> send status + thinking + the step event
+            if translated.get("type") == "step_started":
+                await ws.send_json({"type": "status", "agent": "coder", "status": "active"})
+                await ws.send_json({"type": "thinking", "agent": "coder", "content": f"Starting step {translated['step']}: {translated['description']} — files: {', '.join(translated.get('files', []))}"})
                 await ws.send_json(translated)
+                return
+
+            # step_completed -> send thinking
+            if translated.get("type") == "step_completed":
+                await ws.send_json({"type": "thinking", "agent": "coder", "content": f"Completed step {translated['step']}: {translated['description']}"})
+                await ws.send_json(translated)
+                return
+
+            await ws.send_json(translated)
         except asyncio.CancelledError:
             raise
         except Exception:
             pass  # Connection may have closed
 
-    async def run_task(task: str, repo_path: str):
+    async def run_task(task: str, repo_path: str, force_fresh: bool = False):
         """Execute the DeepDev pipeline, streaming events to the client."""
         try:
             await send_event({
                 "type": "status_change",
                 "data": {"status": "starting", "message": f"Starting task: {task}"},
             })
-            await run_deepdev(task=task, repo_path=repo_path, event_callback=send_event)
+            await run_deepdev(task=task, repo_path=repo_path, event_callback=send_event, force_fresh=force_fresh)
         except asyncio.CancelledError:
             await send_event({
                 "type": "status_change",
@@ -207,6 +268,7 @@ async def websocket_endpoint(ws: WebSocket):
             if msg_type == "start_task":
                 task = msg.get("task", "").strip()
                 repo_path = msg.get("repo_path", "").strip()
+                force_fresh = msg.get("force_fresh", False)
 
                 if not task:
                     await ws.send_json({
@@ -241,7 +303,7 @@ async def websocket_endpoint(ws: WebSocket):
                         pass
 
                 cancel_event.clear()
-                active_task = asyncio.create_task(run_task(task, repo_path))
+                active_task = asyncio.create_task(run_task(task, repo_path, force_fresh))
 
             elif msg_type == "cancel":
                 if active_task and not active_task.done():
