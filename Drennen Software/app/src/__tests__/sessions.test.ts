@@ -242,6 +242,102 @@ describe('splitStoragePath', () => {
 })
 
 // ---------------------------------------------------------------------------
+// GET /api/sessions — query parameter parsing
+// ---------------------------------------------------------------------------
+
+type ListSessionsParams = {
+  page: number
+  limit: number
+  status: string | null
+}
+
+function parseListSessionsParams(searchParams: URLSearchParams): ListSessionsParams {
+  const rawPage = parseInt(searchParams.get('page') ?? '1', 10)
+  const page = Math.max(1, isNaN(rawPage) ? 1 : rawPage)
+  const rawLimit = parseInt(searchParams.get('limit') ?? '20', 10)
+  const limit = Math.min(50, Math.max(1, isNaN(rawLimit) ? 20 : rawLimit))
+  const status = searchParams.get('status')
+  return { page, limit, status }
+}
+
+describe('parseListSessionsParams', () => {
+  it('returns defaults when no params are present', () => {
+    const params = new URLSearchParams()
+    const result = parseListSessionsParams(params)
+    expect(result.page).toBe(1)
+    expect(result.limit).toBe(20)
+    expect(result.status).toBeNull()
+  })
+
+  it('parses explicit page and limit', () => {
+    const params = new URLSearchParams({ page: '3', limit: '10' })
+    const result = parseListSessionsParams(params)
+    expect(result.page).toBe(3)
+    expect(result.limit).toBe(10)
+  })
+
+  it('clamps page to minimum 1 when param is 0', () => {
+    const params = new URLSearchParams({ page: '0' })
+    const result = parseListSessionsParams(params)
+    expect(result.page).toBe(1)
+  })
+
+  it('clamps page to minimum 1 when param is negative', () => {
+    const params = new URLSearchParams({ page: '-5' })
+    const result = parseListSessionsParams(params)
+    expect(result.page).toBe(1)
+  })
+
+  it('defaults page to 1 when param is absent', () => {
+    const params = new URLSearchParams({ limit: '10' })
+    const result = parseListSessionsParams(params)
+    expect(result.page).toBe(1)
+  })
+
+  it('defaults page to 1 when param is non-numeric', () => {
+    const params = new URLSearchParams({ page: 'abc' })
+    const result = parseListSessionsParams(params)
+    expect(result.page).toBe(1)
+  })
+
+  it('defaults limit to 20 when param is absent', () => {
+    const params = new URLSearchParams({ page: '2' })
+    const result = parseListSessionsParams(params)
+    expect(result.limit).toBe(20)
+  })
+
+  it('clamps limit to maximum 50', () => {
+    const params = new URLSearchParams({ limit: '100' })
+    const result = parseListSessionsParams(params)
+    expect(result.limit).toBe(50)
+  })
+
+  it('clamps limit to maximum 50 at exact boundary', () => {
+    const params = new URLSearchParams({ limit: '50' })
+    const result = parseListSessionsParams(params)
+    expect(result.limit).toBe(50)
+  })
+
+  it('clamps limit to minimum 1', () => {
+    const params = new URLSearchParams({ limit: '0' })
+    const result = parseListSessionsParams(params)
+    expect(result.limit).toBe(1)
+  })
+
+  it('passes status through when present', () => {
+    const params = new URLSearchParams({ status: 'completed' })
+    const result = parseListSessionsParams(params)
+    expect(result.status).toBe('completed')
+  })
+
+  it('omits status (null) when not present', () => {
+    const params = new URLSearchParams()
+    const result = parseListSessionsParams(params)
+    expect(result.status).toBeNull()
+  })
+})
+
+// ---------------------------------------------------------------------------
 // Storage presence check — simulates the list() → fileList.length guard
 // ---------------------------------------------------------------------------
 

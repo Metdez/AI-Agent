@@ -105,8 +105,10 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url)
-  const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10))
-  const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') ?? '20', 10)))
+  const rawPage = parseInt(searchParams.get('page') ?? '1', 10)
+  const page = Math.max(1, isNaN(rawPage) ? 1 : rawPage)
+  const rawLimit = parseInt(searchParams.get('limit') ?? '20', 10)
+  const limit = Math.min(50, Math.max(1, isNaN(rawLimit) ? 20 : rawLimit))
   const status = searchParams.get('status')
 
   let query = supabase
