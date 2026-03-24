@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import Link from 'next/link'
 import type { SessionDetail, GeneratedSection, GeneratedOutput } from '@/lib/types'
 
 // ─── State Machine ────────────────────────────────────────────────────────────
@@ -93,6 +94,15 @@ function SectionCard({
   section: GeneratedSection
   animateIn?: boolean
 }) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(section.content).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }).catch(() => {/* clipboard unavailable */})
+  }
+
   return (
     <div
       className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
@@ -112,11 +122,28 @@ function SectionCard({
             {String(section.section_order).padStart(2, '0')}
           </span>
           <div className="flex-1 min-w-0">
-            <p
-              className="text-xs font-semibold tracking-widest uppercase text-gray-400 mb-3"
-            >
-              {section.section_title}
-            </p>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-semibold tracking-widest uppercase text-gray-400">
+                {section.section_title}
+              </p>
+              <button
+                onClick={handleCopy}
+                aria-label={copied ? 'Copied!' : 'Copy section to clipboard'}
+                className="flex-shrink-0 ml-2 p-1.5 rounded-md transition-colors hover:bg-gray-100 active:bg-gray-200"
+                style={{ color: copied ? '#0f6b37' : '#9ca3af' }}
+              >
+                {copied ? (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                ) : (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                )}
+              </button>
+            </div>
             <div className="space-y-2">
               {renderMarkdown(section.content)}
             </div>
@@ -154,9 +181,11 @@ export default function SessionPageClient({ sessionId }: { sessionId: string }) 
   const [state, setState] = useState<PageState>({ phase: 'loading' })
   const [actionLoading, setActionLoading] = useState<'extract' | 'generate' | null>(null)
   const [newSectionIdx, setNewSectionIdx] = useState<number>(-1)
+  const [showSlowGeneration, setShowSlowGeneration] = useState(false)
   const mountedRef = useRef(true)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const slowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const stopPolling = useCallback(() => {
     if (pollRef.current) {
@@ -242,6 +271,7 @@ export default function SessionPageClient({ sessionId }: { sessionId: string }) 
       mountedRef.current = false
       stopPolling()
       abortRef.current?.abort()
+      if (slowTimerRef.current) clearTimeout(slowTimerRef.current)
     }
   }, [sessionId, fetchSession, startPolling, loadOutput, stopPolling])
 
@@ -272,16 +302,76 @@ export default function SessionPageClient({ sessionId }: { sessionId: string }) 
     }
   }
 
+  // ── Action: Retry Extract (from failed state) ────────────────────────────────
+
+  const handleRetryExtract = async () => {
+    if (state.phase !== 'failed') return
+    const session = state.session
+    setActionLoading('extract')
+    setState({ phase: 'extracting', session })
+    try {
+      const res = await fetch(`/api/sessions/${sessionId}/extract`, { method: 'POST' })
+      if (!res.ok) {
+        const json = await res.json().catch(() => null)
+        throw new Error((json?.error?.message as string | undefined) ?? 'Extraction failed')
+      }
+      if (mountedRef.current) {
+        const updated = await fetchSession()
+        setState({ phase: 'pending', session: updated })
+      }
+    } catch (e: unknown) {
+      if (mountedRef.current) {
+        const msg = e instanceof Error ? e.message : 'Text extraction failed. Please try again.'
+        setState({ phase: 'fetch_error', message: msg })
+      }
+    } finally {
+      if (mountedRef.current) setActionLoading(null)
+    }
+  }
+
   // ── Action: Generate (SSE) ───────────────────────────────────────────────────
 
   const handleGenerate = async () => {
     if (state.phase !== 'pending') return
-    const session = state.session
+    let session = state.session
     setActionLoading('generate')
     const sections: GeneratedSection[] = []
+
+    // Auto-extract if no files have been extracted yet
+    const hasExtractedFiles = session.uploaded_files.some(
+      f => f.extraction_status === 'completed'
+    )
+    if (!hasExtractedFiles) {
+      setState({ phase: 'extracting', session })
+      try {
+        const extractRes = await fetch(`/api/sessions/${sessionId}/extract`, { method: 'POST' })
+        if (!extractRes.ok) {
+          const json = await extractRes.json().catch(() => null)
+          throw new Error((json?.error?.message as string | undefined) ?? 'Text extraction failed')
+        }
+        // Re-fetch session to get updated uploaded_files
+        session = await fetchSession()
+        if (!mountedRef.current) return
+      } catch (e: unknown) {
+        if (mountedRef.current) {
+          const msg = e instanceof Error ? e.message : 'Text extraction failed'
+          setState({ phase: 'fetch_error', message: msg })
+          setActionLoading(null)
+        }
+        return
+      }
+    }
+
     setState({ phase: 'generating', session, sections: [] })
     setNewSectionIdx(-1)
+    setShowSlowGeneration(false)
     setActionLoading(null)
+
+    // Show "taking longer than usual" message after 90s with no completion
+    if (slowTimerRef.current) clearTimeout(slowTimerRef.current)
+    slowTimerRef.current = setTimeout(() => {
+      if (mountedRef.current) setShowSlowGeneration(true)
+    }, 90000)
 
     try {
       abortRef.current = new AbortController()
@@ -291,7 +381,9 @@ export default function SessionPageClient({ sessionId }: { sessionId: string }) 
       })
 
       if (!res.ok || !res.body) {
-        throw new Error('Generation could not be started. Please try again.')
+        const json = await res.json().catch(() => null)
+        const msg = (json?.error?.message as string | undefined) ?? 'Generation could not be started. Please try again.'
+        throw new Error(msg)
       }
 
       const reader = res.body.getReader()
@@ -328,7 +420,13 @@ export default function SessionPageClient({ sessionId }: { sessionId: string }) 
                 }
               } else if (currentEvent === 'complete') {
                 stopPolling()
+                if (slowTimerRef.current) clearTimeout(slowTimerRef.current)
                 if (mountedRef.current) await loadOutput(session)
+                return
+              } else if (currentEvent === 'error') {
+                const msg = (payload.message as string | undefined) ?? 'Generation encountered an error. Please try again.'
+                if (slowTimerRef.current) clearTimeout(slowTimerRef.current)
+                if (mountedRef.current) setState({ phase: 'fetch_error', message: msg })
                 return
               }
             } catch {
@@ -340,20 +438,23 @@ export default function SessionPageClient({ sessionId }: { sessionId: string }) 
       }
 
       // Stream ended without explicit 'complete' event
+      if (slowTimerRef.current) clearTimeout(slowTimerRef.current)
       if (mountedRef.current) {
         if (sections.length > 0) {
           await loadOutput(session)
         } else {
-          setState({ phase: 'failed', session })
+          setState({ phase: 'fetch_error', message: 'AI generation timed out — click Retry to try again' })
         }
       }
     } catch (e: unknown) {
+      if (slowTimerRef.current) clearTimeout(slowTimerRef.current)
       if (e instanceof Error && e.name === 'AbortError') return
       if (mountedRef.current) {
         if (sections.length > 0) {
           await loadOutput(session)
         } else {
-          setState({ phase: 'failed', session })
+          const msg = e instanceof Error ? e.message : 'AI generation timed out — click Retry to try again'
+          setState({ phase: 'fetch_error', message: msg })
         }
       }
     }
@@ -401,7 +502,7 @@ export default function SessionPageClient({ sessionId }: { sessionId: string }) 
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
           <nav className="text-xs text-gray-400 mb-1 flex items-center gap-1.5">
-            <a href="/sessions" className="hover:text-gray-600 transition-colors">Sessions</a>
+            <Link href="/sessions" className="hover:text-gray-600 transition-colors">Sessions</Link>
             {speakerName && (
               <>
                 <span>›</span>
@@ -600,6 +701,11 @@ export default function SessionPageClient({ sessionId }: { sessionId: string }) 
                   }}
                 />
               </div>
+              {showSlowGeneration && (
+                <p className="text-purple-200 text-xs mt-3 text-center">
+                  Taking longer than usual… still working on it.
+                </p>
+              )}
             </div>
 
             {/* Live section cards */}
@@ -687,18 +793,27 @@ export default function SessionPageClient({ sessionId }: { sessionId: string }) 
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <button
+                onClick={handleRetryExtract}
+                disabled={actionLoading !== null}
+                className="px-6 py-2.5 rounded-lg text-sm font-medium border-2 transition-colors disabled:opacity-50"
+                style={{ borderColor: '#542785', color: '#542785' }}
+              >
+                {actionLoading === 'extract' ? 'Retrying…' : 'Retry Extraction'}
+              </button>
+              <button
                 onClick={handleRetry}
-                className="px-6 py-2.5 rounded-lg text-white text-sm font-medium transition-opacity hover:opacity-90 active:opacity-75"
+                disabled={actionLoading !== null}
+                className="px-6 py-2.5 rounded-lg text-white text-sm font-medium transition-opacity hover:opacity-90 active:opacity-75 disabled:opacity-50"
                 style={{ backgroundColor: '#f36f21' }}
               >
-                Try Again
+                Reload Session
               </button>
-              <a
+              <Link
                 href="/sessions"
                 className="px-6 py-2.5 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 text-center transition-colors hover:bg-gray-50"
               >
                 Back to Sessions
-              </a>
+              </Link>
             </div>
           </div>
         )}

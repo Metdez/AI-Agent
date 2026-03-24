@@ -7,7 +7,7 @@ const pdfParse = require('pdf-parse') as (buffer: Buffer) => Promise<{ text: str
 import mammoth from 'mammoth'
 
 export const runtime = 'nodejs'
-export const maxDuration = 60
+export const maxDuration = 120
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024 // 10 MB per file
 
@@ -76,12 +76,17 @@ export async function POST(
     return jsonError('NOT_FOUND', 'Session not found', 404)
   }
 
-  if (session.status !== 'pending') {
-    return jsonError('WRONG_STATUS', `Session status is '${session.status}', expected 'pending'`, 409)
+  if (session.status !== 'pending' && session.status !== 'failed') {
+    return jsonError('WRONG_STATUS', `Session status is '${session.status}', expected 'pending' or 'failed'`, 409)
   }
 
+  const admin = createAdminClient()
+
+  // Clear previous extraction data to support clean retry
+  await admin.from('uploaded_files').delete().eq('session_id', sessionId)
+
   // Set status = extracting
-  const { error: updateErr } = await supabase
+  const { error: updateErr } = await admin
     .from('sessions')
     .update({ status: 'extracting' })
     .eq('id', sessionId)
@@ -89,8 +94,6 @@ export async function POST(
   if (updateErr) {
     return jsonError('DB_ERROR', updateErr.message, 500)
   }
-
-  const admin = createAdminClient()
 
   try {
     // Download ZIP from Supabase Storage (admin client bypasses RLS)
@@ -188,9 +191,10 @@ export async function POST(
     })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
+    // Reset to pending so the user can retry without re-uploading
     await admin
       .from('sessions')
-      .update({ status: 'failed', error_message: msg })
+      .update({ status: 'pending', error_message: msg })
       .eq('id', sessionId)
     return jsonError('EXTRACTION_FAILED', `Extraction failed: ${msg}`, 500)
   }
