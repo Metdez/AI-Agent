@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { jsonSuccess, jsonError } from '@/lib/types'
 
 export const runtime = 'nodejs'
@@ -19,16 +20,30 @@ export async function POST(
     return jsonError('UNAUTHORIZED', 'Not authenticated', 401)
   }
 
-  // Verify session belongs to user
+  // Verify session belongs to user and fetch storage path
   const { data: session, error: sessionError } = await supabase
     .from('sessions')
-    .select('id, status')
+    .select('id, status, zip_storage_path')
     .eq('id', sessionId)
     .eq('professor_id', user.id)
     .single()
 
   if (sessionError || !session) {
     return jsonError('NOT_FOUND', 'Session not found', 404)
+  }
+
+  // Verify the ZIP object exists in Supabase Storage (admin client bypasses RLS)
+  if (session.zip_storage_path) {
+    const admin = createAdminClient()
+    const { data: fileList, error: storageError } = await admin.storage
+      .from('speaker-zips')
+      .list(session.zip_storage_path.split('/').slice(0, -1).join('/'), {
+        search: session.zip_storage_path.split('/').pop(),
+      })
+
+    if (storageError || !fileList || fileList.length === 0) {
+      return jsonError('STORAGE_ERROR', 'Upload not found in storage — please re-upload the file', 422)
+    }
   }
 
   // Parse optional body
