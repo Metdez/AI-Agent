@@ -10,6 +10,7 @@ import {
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { jsonError } from '@/lib/types'
+import { safeFilename, formatDate } from '@/lib/export-helpers'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -177,18 +178,6 @@ const styles = StyleSheet.create({
     color: '#aaaaaa',
   },
 })
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function safeFilename(name: string): string {
-  return name.replace(/[^a-zA-Z0-9_\- ]/g, '').trim().replace(/\s+/g, '_') || 'briefing'
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', {
-    year: 'numeric', month: 'long', day: 'numeric',
-  })
-}
 
 // ─── PDF Document builder ─────────────────────────────────────────────────────
 

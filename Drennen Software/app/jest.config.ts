@@ -16,6 +16,9 @@ const config: Config = {
     'src/app/api/auth/login/route.ts',
     'src/app/api/auth/logout/route.ts',
     'src/app/api/auth/session/route.ts',
+    'src/app/api/sessions/[id]/export/pdf/route.ts',
+    'src/app/api/sessions/[id]/export/docx/route.ts',
+    'src/lib/export-helpers.ts',
   ],
 }
 
