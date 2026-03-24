@@ -302,6 +302,33 @@ export default function SessionPageClient({ sessionId }: { sessionId: string }) 
     }
   }
 
+  // ── Action: Retry Extract (from failed state) ────────────────────────────────
+
+  const handleRetryExtract = async () => {
+    if (state.phase !== 'failed') return
+    const session = state.session
+    setActionLoading('extract')
+    setState({ phase: 'extracting', session })
+    try {
+      const res = await fetch(`/api/sessions/${sessionId}/extract`, { method: 'POST' })
+      if (!res.ok) {
+        const json = await res.json().catch(() => null)
+        throw new Error((json?.error?.message as string | undefined) ?? 'Extraction failed')
+      }
+      if (mountedRef.current) {
+        const updated = await fetchSession()
+        setState({ phase: 'pending', session: updated })
+      }
+    } catch (e: unknown) {
+      if (mountedRef.current) {
+        const msg = e instanceof Error ? e.message : 'Text extraction failed. Please try again.'
+        setState({ phase: 'fetch_error', message: msg })
+      }
+    } finally {
+      if (mountedRef.current) setActionLoading(null)
+    }
+  }
+
   // ── Action: Generate (SSE) ───────────────────────────────────────────────────
 
   const handleGenerate = async () => {
@@ -416,7 +443,7 @@ export default function SessionPageClient({ sessionId }: { sessionId: string }) 
         if (sections.length > 0) {
           await loadOutput(session)
         } else {
-          setState({ phase: 'failed', session })
+          setState({ phase: 'fetch_error', message: 'AI generation timed out — click Retry to try again' })
         }
       }
     } catch (e: unknown) {
@@ -426,7 +453,8 @@ export default function SessionPageClient({ sessionId }: { sessionId: string }) 
         if (sections.length > 0) {
           await loadOutput(session)
         } else {
-          setState({ phase: 'failed', session })
+          const msg = e instanceof Error ? e.message : 'AI generation timed out — click Retry to try again'
+          setState({ phase: 'fetch_error', message: msg })
         }
       }
     }
@@ -765,11 +793,20 @@ export default function SessionPageClient({ sessionId }: { sessionId: string }) 
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <button
+                onClick={handleRetryExtract}
+                disabled={actionLoading !== null}
+                className="px-6 py-2.5 rounded-lg text-sm font-medium border-2 transition-colors disabled:opacity-50"
+                style={{ borderColor: '#542785', color: '#542785' }}
+              >
+                {actionLoading === 'extract' ? 'Retrying…' : 'Retry Extraction'}
+              </button>
+              <button
                 onClick={handleRetry}
-                className="px-6 py-2.5 rounded-lg text-white text-sm font-medium transition-opacity hover:opacity-90 active:opacity-75"
+                disabled={actionLoading !== null}
+                className="px-6 py-2.5 rounded-lg text-white text-sm font-medium transition-opacity hover:opacity-90 active:opacity-75 disabled:opacity-50"
                 style={{ backgroundColor: '#f36f21' }}
               >
-                Try Again
+                Reload Session
               </button>
               <Link
                 href="/sessions"
