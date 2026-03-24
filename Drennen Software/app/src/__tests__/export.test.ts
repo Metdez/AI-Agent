@@ -5,19 +5,7 @@
  * Pattern: extract pure helpers and test them in isolation — no Supabase mocks needed.
  */
 
-// ---------------------------------------------------------------------------
-// Helpers (re-declared here to mirror the source without importing Next.js runtime)
-// ---------------------------------------------------------------------------
-
-function safeFilename(name: string): string {
-  return name.replace(/[^a-zA-Z0-9_\- ]/g, '').trim().replace(/\s+/g, '_') || 'briefing'
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', {
-    year: 'numeric', month: 'long', day: 'numeric',
-  })
-}
+import { safeFilename, formatDate } from '../lib/export-helpers'
 
 // ---------------------------------------------------------------------------
 // safeFilename
