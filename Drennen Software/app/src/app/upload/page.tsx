@@ -215,7 +215,7 @@ export default function UploadPage() {
             <div
               role="button"
               tabIndex={0}
-              aria-label="Drop zone for ZIP file"
+              aria-label="Upload ZIP file"
               onClick={() => !isSubmitting && fileInputRef.current?.click()}
               onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && !isSubmitting) fileInputRef.current?.click() }}
               onDragOver={onDragOver}
