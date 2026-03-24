@@ -20,10 +20,10 @@ export const runtime = 'nodejs'
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/'
+  const next = searchParams.get('next') ?? '/dashboard'
 
   // Open-redirect guard: only accept paths that start with '/' and are not protocol-relative (//)
-  const safeNext = next.startsWith('/') && !next.startsWith('//') ? next : '/'
+  const safeNext = next.startsWith('/') && !next.startsWith('//') ? next : '/dashboard'
 
   // Missing code — cannot proceed
   if (!code) {
