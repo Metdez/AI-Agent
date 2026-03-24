@@ -55,3 +55,29 @@ export function jsonSuccess<T>(data: T, status = 200): Response {
 export function jsonError(code: string, message: string, status: number): Response {
   return Response.json({ data: null, error: { code, message } }, { status })
 }
+
+export type StudentAnalysis = {
+  analysis_text: string
+  interest_tags: string[]
+  generated_at: string
+}
+
+export type StudentSummary = {
+  id: string
+  display_name: string
+  question_count: number
+  session_count: number
+  top_interest: string | null
+}
+
+export type StudentDetail = {
+  id: string
+  display_name: string
+  analysis: StudentAnalysis | null
+  sessions: Array<{
+    session_id: string
+    speaker_name: string
+    created_at: string
+    questions: string[]
+  }>
+}
