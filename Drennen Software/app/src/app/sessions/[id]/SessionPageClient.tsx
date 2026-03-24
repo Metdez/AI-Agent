@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import Link from 'next/link'
 import type { SessionDetail, GeneratedSection, GeneratedOutput } from '@/lib/types'
 
 // ─── State Machine ────────────────────────────────────────────────────────────
@@ -328,6 +329,10 @@ export default function SessionPageClient({ sessionId }: { sessionId: string }) 
                 }
               } else if (currentEvent === 'complete') {
                 stopPolling()
+                // Fire Phase 3 in background — do not await
+                fetch(`/api/sessions/${sessionId}/analyze-students`, { method: 'POST' }).catch(() => {
+                  // Phase 3 failure is silent — teacher can re-trigger from Students page
+                })
                 if (mountedRef.current) await loadOutput(session)
                 return
               }
@@ -401,7 +406,7 @@ export default function SessionPageClient({ sessionId }: { sessionId: string }) 
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
           <nav className="text-xs text-gray-400 mb-1 flex items-center gap-1.5">
-            <a href="/sessions" className="hover:text-gray-600 transition-colors">Sessions</a>
+            <Link href="/sessions" className="hover:text-gray-600 transition-colors">Sessions</Link>
             {speakerName && (
               <>
                 <span>›</span>
@@ -693,12 +698,12 @@ export default function SessionPageClient({ sessionId }: { sessionId: string }) 
               >
                 Try Again
               </button>
-              <a
+              <Link
                 href="/sessions"
                 className="px-6 py-2.5 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 text-center transition-colors hover:bg-gray-50"
               >
                 Back to Sessions
-              </a>
+              </Link>
             </div>
           </div>
         )}
