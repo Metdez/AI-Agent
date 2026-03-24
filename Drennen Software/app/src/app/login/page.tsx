@@ -16,7 +16,7 @@ export default function LoginPage() {
   useEffect(() => {
     const errorParam = searchParams.get('error')
     if (errorParam) {
-      setError(decodeURIComponent(errorParam))
+      setError(errorParam)
     }
   }, [searchParams])
 

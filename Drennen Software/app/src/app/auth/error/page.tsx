@@ -19,7 +19,7 @@ export default function AuthErrorPage() {
             </svg>
           </div>
           <h2 className="text-lg font-semibold mb-2 text-gray-900">Sign-in failed</h2>
-          <p className="text-sm text-gray-600 mb-1">{decodeURIComponent(errorDescription)}</p>
+          <p className="text-sm text-gray-600 mb-1">{errorDescription}</p>
           {errorCode !== 'unknown' && (
             <p className="text-xs text-gray-400 mb-6">Error code: {errorCode}</p>
           )}
