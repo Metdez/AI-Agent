@@ -6,20 +6,20 @@ const router = Router();
 router.post("/webhook/github", async (req, res) => {
   try {
     const event = req.headers["x-github-event"];
-    const { action } = req.body;
+    const payload = req.body;
 
-    const jobId = await enqueue({
+    await enqueue({
       source: "github",
-      eventType: `${event}.${action}`,
-      issueId: null,
-      state: null,
-      payload: req.body,
+      eventType: event || "unknown",
+      issueId: String(payload?.issue?.number || payload?.pull_request?.number || "0"),
+      state: payload?.action || "unknown",
+      payload,
     });
 
-    res.json({ queued: true, jobId });
+    res.status(202).json({ queued: true });
   } catch (err) {
-    console.error("GitHub webhook error:", err);
-    res.status(500).json({ error: "Internal error" });
+    console.error("GitHub webhook error", err);
+    res.status(500).json({ error: "internal error" });
   }
 });
 

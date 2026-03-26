@@ -1,17 +1,14 @@
 import { describe, it, expect } from "vitest";
 import request from "supertest";
-import express from "express";
-import healthRoutes from "../../src/webhook-server/routes/health.js";
-
-const app = express();
-app.use(express.json());
-app.use(healthRoutes);
+import { createApp } from "../../src/webhook-server/index.js";
 
 describe("GET /health", () => {
-  it("returns status ok", async () => {
+  const app = createApp();
+
+  it("returns 200 with status ok", async () => {
     const res = await request(app).get("/health");
     expect(res.status).toBe(200);
     expect(res.body.status).toBe("ok");
-    expect(res.body.timestamp).toBeDefined();
+    expect(typeof res.body.timestamp).toBe("string");
   });
 });

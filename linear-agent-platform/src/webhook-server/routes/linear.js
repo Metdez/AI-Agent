@@ -8,31 +8,31 @@ router.post("/webhook/linear", async (req, res) => {
   try {
     const { action, type, data } = req.body;
 
-    if (type !== "Issue" || !data?.state?.name) {
-      return res.json({ skipped: true, reason: "not an issue state change" });
+    if (!data?.id || !data?.state?.name) {
+      return res.status(200).json({ skipped: true, reason: "missing issue id or state" });
     }
 
-    const issueId = data.identifier || data.id;
+    const issueId = data.id;
     const state = data.state.name;
 
-    if (await isDuplicate(issueId, state)) {
-      return res.json({ skipped: true, reason: "duplicate" });
+    const dup = await isDuplicate(issueId, state);
+    if (dup) {
+      return res.status(200).json({ skipped: true, reason: "duplicate" });
     }
 
     await markProcessed(issueId, state);
-
-    const jobId = await enqueue({
+    await enqueue({
       source: "linear",
-      eventType: `${type}.${action}`,
+      eventType: type || "Issue",
       issueId,
       state,
       payload: req.body,
     });
 
-    res.json({ queued: true, jobId });
+    res.status(202).json({ queued: true });
   } catch (err) {
-    console.error("Linear webhook error:", err);
-    res.status(500).json({ error: "Internal error" });
+    console.error("Linear webhook error", err);
+    res.status(500).json({ error: "internal error" });
   }
 });
 
