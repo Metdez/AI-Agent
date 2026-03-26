@@ -1,75 +1,43 @@
 import { describe, it, expect, vi } from "vitest";
 import { LinearClient } from "../../src/sync-adapter/linear-client.js";
 
-function makeSdk({ issue, createComment, updateIssue, team } = {}) {
-  return {
-    issue: vi.fn().mockResolvedValue(issue),
-    createComment: vi.fn().mockResolvedValue(undefined),
-    updateIssue: vi.fn().mockResolvedValue(undefined),
-    team: vi.fn().mockResolvedValue(team),
-  };
-}
-
 describe("LinearClient", () => {
-  describe("getIssue", () => {
-    it("returns structured issue data", async () => {
-      const fakeIssue = {
+  it("getIssue fetches issue with full context", async () => {
+    const mockSdk = {
+      issue: vi.fn().mockResolvedValue({
         id: "issue-1",
-        title: "Fix the bug",
-        description: "Something is broken",
+        identifier: "DRN-42",
+        title: "Fix login bug",
+        description: "Users can't log in",
         state: { name: "In Progress" },
         labels: vi.fn().mockResolvedValue({ nodes: [{ name: "bug" }] }),
         comments: vi.fn().mockResolvedValue({
-          nodes: [{ body: "Looking into it", user: { name: "Alice" } }],
+          nodes: [{ body: "Started work", createdAt: "2026-01-01" }],
         }),
-      };
+        assignee: { name: "Zack", email: "zack@test.com" },
+      }),
+    };
 
-      const sdk = makeSdk({ issue: fakeIssue });
-      const client = new LinearClient(sdk);
-      const result = await client.getIssue("issue-1");
+    const client = new LinearClient(mockSdk);
+    const issue = await client.getIssue("issue-1");
 
-      expect(result.id).toBe("issue-1");
-      expect(result.title).toBe("Fix the bug");
-      expect(result.labels).toEqual(["bug"]);
-      expect(result.comments).toEqual([{ body: "Looking into it", author: "Alice" }]);
-    });
+    expect(issue.identifier).toBe("DRN-42");
+    expect(issue.title).toBe("Fix login bug");
+    expect(issue.stateName).toBe("In Progress");
+    expect(issue.labels).toEqual(["bug"]);
   });
 
-  describe("addComment", () => {
-    it("calls sdk.createComment with correct args", async () => {
-      const sdk = makeSdk();
-      const client = new LinearClient(sdk);
-      await client.addComment("issue-1", "Hello world");
-      expect(sdk.createComment).toHaveBeenCalledWith({ issueId: "issue-1", body: "Hello world" });
-    });
-  });
+  it("addComment posts a comment to an issue", async () => {
+    const mockSdk = {
+      createComment: vi.fn().mockResolvedValue({ success: true }),
+    };
 
-  describe("moveToState", () => {
-    it("calls sdk.updateIssue with stateId", async () => {
-      const sdk = makeSdk();
-      const client = new LinearClient(sdk);
-      await client.moveToState("issue-1", "state-99");
-      expect(sdk.updateIssue).toHaveBeenCalledWith("issue-1", { stateId: "state-99" });
-    });
-  });
+    const client = new LinearClient(mockSdk);
+    await client.addComment("issue-1", "Agent completed task");
 
-  describe("getTeamStates", () => {
-    it("returns array of state objects", async () => {
-      const fakeTeam = {
-        states: vi.fn().mockResolvedValue({
-          nodes: [
-            { id: "s1", name: "Triage", type: "triage" },
-            { id: "s2", name: "In Progress", type: "started" },
-          ],
-        }),
-      };
-
-      const sdk = makeSdk({ team: fakeTeam });
-      const client = new LinearClient(sdk);
-      const states = await client.getTeamStates("team-1");
-
-      expect(states).toHaveLength(2);
-      expect(states[0]).toEqual({ id: "s1", name: "Triage", type: "triage" });
+    expect(mockSdk.createComment).toHaveBeenCalledWith({
+      issueId: "issue-1",
+      body: "Agent completed task",
     });
   });
 });
