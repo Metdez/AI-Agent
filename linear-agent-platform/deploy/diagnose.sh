@@ -1,0 +1,21 @@
+#!/bin/bash
+echo "=== Webhook server out log ==="
+tail -20 /var/log/agents/webhook-server-out.log 2>/dev/null || echo "(empty)"
+echo ""
+echo "=== Webhook server error log ==="
+tail -20 /var/log/agents/webhook-server-error.log 2>/dev/null || echo "(empty)"
+echo ""
+echo "=== Sync adapter out log ==="
+tail -20 /var/log/agents/sync-adapter-out.log 2>/dev/null || echo "(empty)"
+echo ""
+echo "=== Sync adapter error log ==="
+tail -20 /var/log/agents/sync-adapter-error.log 2>/dev/null || echo "(empty)"
+echo ""
+echo "=== Port listeners ==="
+ss -tlnp 2>/dev/null || netstat -tlnp 2>/dev/null
+echo ""
+echo "=== Health check ==="
+curl -s http://localhost:3000/health 2>&1 || echo "(no response)"
+echo ""
+echo "=== PM2 status ==="
+pm2 ls

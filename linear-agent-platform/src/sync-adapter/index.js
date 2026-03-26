@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { LinearSDK } from "@linear/sdk";
+import { LinearClient as LinearSDKClient } from "@linear/sdk";
 import { dequeue, completeJob, failJob } from "../queue/dequeue.js";
 import { getAgentForState } from "./state-router.js";
 import { LinearClient } from "./linear-client.js";
@@ -11,7 +11,7 @@ let linearClient;
 
 function getLinearClient() {
   if (!linearClient) {
-    const sdk = new LinearSDK({ apiKey: process.env.LINEAR_API_KEY });
+    const sdk = new LinearSDKClient({ apiKey: process.env.LINEAR_API_KEY });
     linearClient = new LinearClient(sdk);
   }
   return linearClient;

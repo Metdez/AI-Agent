@@ -16,8 +16,10 @@ export function createApp({ linearSecret, githubSecret } = {}) {
   return app;
 }
 
-// Only start the server when run directly
-if (process.argv[1] && process.argv[1].endsWith("index.js")) {
+// Start the server when run directly or via PM2
+// (Skip only when imported by test files)
+const isTestImport = process.env.VITEST === "true" || process.env.NODE_ENV === "test";
+if (!isTestImport) {
   const { config } = await import("../config.js");
   const app = createApp({
     linearSecret: config.linear.webhookSecret,
