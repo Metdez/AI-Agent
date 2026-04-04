@@ -5,6 +5,8 @@ import { createServerClient } from '@supabase/ssr'
 const PUBLIC_AUTH_ROUTES = [
   '/api/auth/signup',
   '/api/auth/login',
+  '/auth/callback',
+  '/auth/error',
 ]
 
 export async function middleware(request: NextRequest) {
